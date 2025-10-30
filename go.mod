@@ -1,6 +1,6 @@
-module cmd
+module github.com/Indroneel007/Load-Balancer
 
-go 1.24.3
+go 1.24
 
 require github.com/spf13/viper v1.21.0
 
