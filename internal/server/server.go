@@ -17,6 +17,8 @@ func Run() error {
 	// Create a new Router
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/ping", ping)
+
 	// Iterating through the configuration resource and registering them
 	// into the router.
 	for _, resource := range configs.Resources {
