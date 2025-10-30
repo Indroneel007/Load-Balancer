@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"log"
+
+	"github.com/Indroneel007/Load-Balancer/internal/server"
+)
 
 func main() {
-	fmt.Println("Hello, World!")
+	err := server.Run()
+	if err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }
