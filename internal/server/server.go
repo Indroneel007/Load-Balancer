@@ -23,11 +23,14 @@ func Run() error {
 	// into the router.
 	for _, resource := range configs.Resources {
 		url, _ := url.Parse(resource.Destination_Url)
+		fmt.Printf("parsed url is %v\n", url)
 		proxy := NewProxy(url)
 		mux.HandleFunc(resource.Endpoint, ProxyRequestHandler(proxy, url, resource.Endpoint))
 	}
 	// Running proxy server
-	if err := http.ListenAndServe(configs.Server.Host+":"+configs.Server.Listen_port, mux); err != nil {
+	addr := configs.Server.Host + ":" + configs.Server.Listen_port
+	fmt.Printf("listening on %s\n", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
 		return fmt.Errorf("could not start the server: %v", err)
 	}
 	return nil

@@ -1,0 +1,7 @@
+Starting Load Balancer Server...
+parsed url is http://localhost:9001
+parsed url is http://localhost:9002
+parsed url is http://localhost:9003
+listening on localhost:8089
+Received request for /server1, forwarding to http://localhost:9001
+[ TinyRP ] Redirecting request to http://localhost:9001 at 2025-10-30 12:26:21.0676318 +0000 UTC
