@@ -9,6 +9,18 @@ import (
 	"time"
 )
 
+// Next returns the next index in a round-robin fashion, thread-safe.
+func (lb *LoadBalancer) Next(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	lb.Mutex.Lock()
+	defer lb.Mutex.Unlock()
+	idx := lb.Current
+	lb.Current = (lb.Current + 1) % n
+	return idx
+}
+
 func NewProxy(target *url.URL) *httputil.ReverseProxy {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	return proxy
