@@ -5,10 +5,16 @@ server:
 resources:
   - name: "Server1"
     endpoint: "/server1"
-    destination_url: "http://localhost:9001"
+    destination_urls:
+      - "http://localhost:9001"
+      - "http://localhost:9002"
   - name: "Server2"
     endpoint: "/server2"
-    destination_url: "http://localhost:9002"
+    destination_urls:
+      - "http://localhost:9002"
+      - "http://localhost:9003"
   - name: "Server3"
     endpoint: "/server3"
-    destination_url: "http://localhost:9003"
+    destination_urls:
+      - "http://localhost:9003"
+      - "http://localhost:9001"

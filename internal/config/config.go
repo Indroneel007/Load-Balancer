@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/spf13/viper"
 )
@@ -10,7 +11,10 @@ import (
 type resource struct {
 	Name            string
 	Endpoint        string
-	Destination_Url string
+	Destination_Url string   // kept for backward compatibility (if present)
+	Destinations    []string `mapstructure:"destination_urls" yaml:"destination_urls"`
+	IsHealthy       bool
+	Mutex           sync.Mutex
 }
 
 type configuration struct {
