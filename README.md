@@ -1,110 +1,103 @@
 # Load-Balancer
 
-Small HTTP reverse-proxy / load-balancer used for local testing and learning.
+Small HTTP reverse-proxy / load-balancer for local testing and learning.
 
-This repo implements a basic reverse proxy that can forward requests to one
-or more backends per logical resource. Recent work in this branch includes:
+## Overview
 
-- fixing the module path in `go.mod` so imports resolve correctly
-- fixing config unmarshalling so the YAML is read reliably
-- standardizing the config key to `server.listen_port` (string)
-- adding a simple thread-safe round-robin algorithm per resource
-- small diagnostic logging to print the bind address on startup
+This project implements a basic reverse proxy that forwards requests to one or more backends per logical resource. Features include:
 
-Files you may care about
-- `cmd/main.go` — program entrypoint (calls `server.Run()`)
-- `internal/config/config.go` — reads `data/config.yaml` (uses viper)
-- `data/config.yaml` — example configuration (server + resources)
-- `internal/server/server.go` — router wiring and server startup
-- `internal/server/proxy_handlers.go` — request handler + proxy logic
+- Correct module path in `go.mod` for proper imports
+- Reliable YAML config unmarshalling
+- Standardized config key: `server.listen_port` (string)
+- Thread-safe round-robin backend selection per resource
+- Diagnostic logging (bind address printed on startup)
 
-Quick start (PowerShell)
+## File Structure
 
-1. Build the project:
+- `cmd/main.go` — Program entrypoint (`server.Run()`)
+- `internal/config/config.go` — Reads `data/config.yaml` (uses viper)
+- `data/config.yaml` — Example configuration (server + resources)
+- `internal/server/server.go` — Router wiring and server startup
+- `internal/server/proxy_handlers.go` — Request handler + proxy logic
 
-```powershell
-cd C:\Users\HP\Desktop\LoadBalancer
-go build -o loadbalancer.exe ./cmd
-```
+## Quick Start (PowerShell)
 
-2. Run detached and capture logs (recommended for background runs):
+1. **Build the project:**
 
-```powershell
-# start detached and redirect stdout/stderr to files
-Start-Process -FilePath .\loadbalancer.exe -WorkingDirectory (Get-Location) -RedirectStandardOutput .\server.out -RedirectStandardError .\server.err -NoNewWindow
-Start-Sleep -Milliseconds 500
-Invoke-WebRequest -Uri 'http://localhost:8089/ping' -Method Head -UseBasicParsing
-Get-Content .\server.out -Tail 50
-Get-Content .\server.err -Tail 50
-```
+    ```powershell
+    cd C:\Users\HP\Desktop\LoadBalancer
+    go build -o loadbalancer.exe ./cmd
+    ```
 
-3. Or run in-foreground to see logs immediately:
+2. **Run detached and capture logs:**
 
-```powershell
-go run ./cmd
-```
+    ```powershell
+    # start detached and redirect stdout/stderr to files
+    Start-Process -FilePath .\loadbalancer.exe -WorkingDirectory (Get-Location) -RedirectStandardOutput .\server.out -RedirectStandardError .\server.err -NoNewWindow
+    Start-Sleep -Milliseconds 500
+    Invoke-WebRequest -Uri 'http://localhost:8089/ping' -Method Head -UseBasicParsing
+    Get-Content .\server.out -Tail 50
+    Get-Content .\server.err -Tail 50
+    ```
 
-Configuration
+3. **Or run in foreground:**
 
-The config is in `data/config.yaml`. Key points:
+    ```powershell
+    go run ./cmd
+    ```
 
-- `server.host` (string) — host to bind, e.g. `localhost`
-- `server.listen_port` (string) — port to bind, e.g. `"8089"`
-- `resources` — list of resources. Each resource should have:
-	- `name` — a logical name
-	- `endpoint` — the path prefix to register on the router (e.g. `/server1`)
-	- `destination_urls` — an array of backend URLs (e.g. `["http://localhost:9001", "http://localhost:9002"]`)
+## Configuration
 
-Example resource entry:
+Edit `data/config.yaml`. Key fields:
+
+- `server.host` (string): Host to bind (e.g. `localhost`)
+- `server.listen_port` (string): Port to bind (e.g. `"8089"`)
+- `resources`: List of resources. Each resource:
+    - `name`: Logical name
+    - `endpoint`: Path prefix to register (e.g. `/server1`)
+    - `destination_urls`: Array of backend URLs (e.g. `["http://localhost:9001", "http://localhost:9002"]`)
+
+**Example resource entry:**
 
 ```yaml
 resources:
-	- name: "Server1"
-		endpoint: "/server1"
-		destination_urls:
-			- "http://localhost:9001"
-			- "http://localhost:9002"
+  - name: "Server1"
+    endpoint: "/server1"
+    destination_urls:
+      - "http://localhost:9001"
+      - "http://localhost:9002"
 ```
 
-Round-robin behavior
+## Round-Robin Behavior
 
-Each resource now gets its own `LoadBalancer` instance (in `internal/server/server.go`) which
-maintains a counter and exposes `Next(n int) int` to return the next backend index in a
-thread-safe round-robin fashion. The handler in `internal/server/proxy_handlers.go` picks the
-next backend for every incoming request and forwards the request using Go's
-`httputil.NewSingleHostReverseProxy`.
+Each resource uses a `LoadBalancer` instance (see `internal/server/server.go`) for thread-safe round-robin backend selection. The handler in `internal/server/proxy_handlers.go` picks the next backend for each request and forwards using Go's `httputil.NewSingleHostReverseProxy`.
 
-Diagnostics & troubleshooting
+## Diagnostics & Troubleshooting
 
-- If the server fails to bind or not responding, check `server.out` / `server.err` when running detached.
-- The server prints a line like `listening on localhost:8089` at startup (added for debugging).
-- Use PowerShell's `Invoke-WebRequest` on Windows rather than `curl -I` for consistent output:
+- Check `server.out` / `server.err` for logs when running detached.
+- On startup, server prints: `listening on localhost:8089`.
+- Use PowerShell's `Invoke-WebRequest` for testing:
 
-```powershell
-Invoke-WebRequest -Uri 'http://localhost:8089/server1' -Method Head -UseBasicParsing
-```
+    ```powershell
+    Invoke-WebRequest -Uri 'http://localhost:8089/server1' -Method Head -UseBasicParsing
+    ```
 
-What changed in code (high level)
+## Recent Changes
 
-- `go.mod` — module path corrected to `github.com/Indroneel007/Load-Balancer`
-- `internal/config/config.go` — fixed viper.Unmarshal usage; now unmarshals into a local struct and assigns
-- `data/config.yaml` — switched to `listen_port` and `destination_urls` list format
-- `internal/server/server.go` — added `LoadBalancer` type + `Next` method, wired each resource to a lb + destinations list, prints bind address
-- `internal/server/proxy_handlers.go` — handler updated to accept a `LoadBalancer` and destinations slice and select backends round-robin
+- `go.mod`: Module path set to `github.com/Indroneel007/Load-Balancer`
+- `internal/config/config.go`: Fixed viper.Unmarshal usage
+- `data/config.yaml`: Uses `listen_port` and `destination_urls` list
+- `internal/server/server.go`: Added `LoadBalancer` type and bind address print
+- `internal/server/proxy_handlers.go`: Handler updated for round-robin backend selection
 
-Next suggested improvements
+## Next Steps
 
-- Add validation for config (fail-fast if `listen_port` is missing or resources are empty)
-- Allow both `destination_url` (single) and `destination_urls` (array) in the YAML for more forgiving parsing (already partially supported)
-- Add health-checking and active backend removal for unhealthy backends
+- Add config validation (fail-fast if `listen_port` missing or resources empty)
+- Support both `destination_url` (single) and `destination_urls` (array) in YAML
+- Add health-checking and backend removal for unhealthy backends
 - Add structured logging and configurable log files/levels
 
-If you want, I can:
-- add config validation and fail-fast behavior now
-- remove the debug `listening on ...` print once you're satisfied
-- add a minimal test that ensures round-robin cycles through backends
-
-If anything here doesn't match what you see locally, tell me which file to inspect and I'll reconcile it.
+If you need help or something doesn't match your local files, let me know which file to inspect.
 
 ---
-Generated update: included fixes, run instructions, and round-robin support added on Nov 1, 2025.
+_Last updated: Nov 1, 2025_
