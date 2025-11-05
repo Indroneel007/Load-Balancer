@@ -9,7 +9,9 @@ This project implements a basic reverse proxy that forwards requests to one or m
 - Correct module path in `go.mod` for proper imports
 - Reliable YAML config unmarshalling
 - Standardized config key: `server.listen_port` (string)
-- Thread-safe round-robin backend selection per resource
+- **Thread-safe round-robin and least response time backend selection per resource**
+- **SSL redirection headers set for secure forwarding**
+- **Mutex usage for safe concurrent server requests**
 - Diagnostic logging (bind address printed on startup)
 
 ## File Structure
@@ -17,7 +19,7 @@ This project implements a basic reverse proxy that forwards requests to one or m
 - `cmd/main.go` — Program entrypoint (`server.Run()`)
 - `internal/config/config.go` — Reads `data/config.yaml` (uses viper)
 - `data/config.yaml` — Example configuration (server + resources)
-- `internal/server/server.go` — Router wiring and server startup
+- `internal/server/server.go` — Router wiring, server startup, load balancing algorithms
 - `internal/server/proxy_handlers.go` — Request handler + proxy logic
 
 ## Quick Start (PowerShell)
@@ -68,9 +70,18 @@ resources:
       - "http://localhost:9002"
 ```
 
-## Round-Robin Behavior
+## Load Balancing Algorithms
 
-Each resource uses a `LoadBalancer` instance (see `internal/server/server.go`) for thread-safe round-robin backend selection. The handler in `internal/server/proxy_handlers.go` picks the next backend for each request and forwards using Go's `httputil.NewSingleHostReverseProxy`.
+- **Round-Robin:** Each resource uses a thread-safe round-robin algorithm for backend selection.
+- **Least Response Time:** Requests can be routed to the backend with the lowest recent response time for improved performance.
+
+## SSL Redirection
+
+- The proxy sets appropriate headers to support SSL redirection, ensuring secure forwarding of requests to backends.
+
+## Concurrency
+
+- Mutexes are used to safely handle concurrent requests and backend selection, preventing race conditions.
 
 ## Diagnostics & Troubleshooting
 
@@ -87,8 +98,8 @@ Each resource uses a `LoadBalancer` instance (see `internal/server/server.go`) f
 - `go.mod`: Module path set to `github.com/Indroneel007/Load-Balancer`
 - `internal/config/config.go`: Fixed viper.Unmarshal usage
 - `data/config.yaml`: Uses `listen_port` and `destination_urls` list
-- `internal/server/server.go`: Added `LoadBalancer` type and bind address print
-- `internal/server/proxy_handlers.go`: Handler updated for round-robin backend selection
+- `internal/server/server.go`: Added round-robin and least response time algorithms, mutex for concurrency, bind address print
+- `internal/server/proxy_handlers.go`: Handler updated for backend selection and SSL headers
 
 ## Next Steps
 
